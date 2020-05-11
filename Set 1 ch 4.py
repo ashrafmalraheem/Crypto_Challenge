@@ -8,6 +8,7 @@ key = '35'  # the key was found to be the 35 after searching for space the most 
 
 for i in range(30):
     str_key += key
+    
 
 the_key = int(str_key,16)
 print(hex(the_key))
