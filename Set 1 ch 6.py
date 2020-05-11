@@ -83,7 +83,7 @@ def decrypt(ciphter_text:bytes,key:bytes):
     return decrypted
 
 '''Read the file as byte coded'''
-with open('Ch6.txt','r') as input:
+with open('6.txt','r') as input:
     text = input.read()
 
 decoded = b64decode(text)
