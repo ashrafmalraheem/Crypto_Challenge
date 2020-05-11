@@ -1,6 +1,7 @@
 from base64 import b64decode
 from collections import Counter
-from string import ascii_letters
+
+
 def hamming_distance(block1:bytes,block2:bytes):
     '''The hamming distance function in implemented with counting the One's
         after making XOR between two blocks  '''
@@ -83,7 +84,7 @@ def decrypt(ciphter_text:bytes,key:bytes):
     return decrypted
 
 '''Read the file as byte coded'''
-with open('Ch6.txt','r') as input:
+with open('6.txt','r') as input:
     text = input.read()
 
 decoded = b64decode(text)
@@ -91,6 +92,6 @@ decoded = b64decode(text)
 
 transposed = transpose(decoded,find_keylength(decoded))
 
-print('the key = ',(find_key(transposed)))
+#print('the key = ',(find_key(transposed)))
 
-print(str(decrypt(decoded,find_key(transposed)),'utf-8'))
+#print(str(decrypt(decoded,find_key(transposed)),'utf-8'))
