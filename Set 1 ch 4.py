@@ -1,35 +1,70 @@
 # Crypto challenge Set 1 Challenge 4
 print("Crypto challenge Set 1 Challenge 4")
 from collections import Counter
-def Fixed_XOR(param1,param2):
-    return param1 ^ param2
-str_key = '0x'
-key = '35'  # the key was found to be the 35 after searching for space the most frequent used letter
 
-for i in range(30):
-    str_key += key
-    
+def obtain_cipher_text(cipher_text):
+    ''' To obtain the ciphered text: the function will count the number of
+        frequently used letters/bytes. The line with maximum number of
+        frequently used letters is the ciphered one.
+    '''
+    length_of_letter_frequency = 1000 # some initial value
+    line_index = 0
+    for i in range(len(cipher_text)):
+        if length_of_letter_frequency > len(Counter(cipher_text[i]).most_common()):
+            length_of_letter_frequency = len(Counter(cipher_text[i]).most_common())
+            line_index = i
+    return cipher_text[line_index]
 
-the_key = int(str_key,16)
-print(hex(the_key))
-line_number = 1
-with open('Text.txt', 'rb') as input_file:
-    with open('Results.txt','w') as output_file:
-        with open('Stats.txt','w') as stat_file:
-            while True:
-                text = (input_file.readline()).rstrip(b'\n')
-                if text == b'':
-                    break
-                str_text = int(str(text, 'utf-8'), 16)  # convert the data from byte to string then to integer
-                length = int((len(str(hex(str_text)))) / 2)  # Get the length of the data, note it is two bytes
-                byte_inputs = str_text.to_bytes(length, 'big')
-                # print("Decrypted Text =", byte_inputs)
-                print(line_number, "", str(Counter(byte_inputs)), file=stat_file)
-                # print(line_number,"  ",hex(str_text))
-                xor = the_key ^ str_text
-                output = xor.to_bytes(length, 'big')
-                print(line_number, ' ', length, ' ', output, file=output_file)
-                print(line_number, ' ', length, ' ', output)
-                line_number += 1
+def decrypt(ciphter_text:bytes,key:bytes):
+    decrypted =b''
+    for i in range(len(ciphter_text)):
+         decrypted += (key[i%len(key)] ^ ciphter_text[i]).to_bytes(1,'big')
+    return decrypted
+
+def find_key(cipher_text:list):
+    ''' To find key using brute force attack
+    The most common letters are used in dictionary, including space
+    The most common letter in cipher text is XORed with the brute force
+    dictionary letters. The obtained key will be tested against full cipher
+    text. it is all alphabetical letters the key is found.
+    '''
+    brute_force_dict = b' etario'
+    my_dictionary = b' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890(),.\'\"\n:-'
+    the_key = b''
+    save_key = b''
+    ''' Start raw by raw of transposed data'''
+    for k in range(len(cipher_text)):
+        '''Obtain the most common letter in the Kth raw/set of data'''
+        most_common_ciphered_letter = Counter(cipher_text[k]).most_common(1)[0][0]
+        minimal_decrypted_data_length = len(cipher_text[k])
+        '''Xor with the most common letter with the brute force dictionary '''
+        for i in range(len(brute_force_dict)):
+            key = brute_force_dict[i] ^ most_common_ciphered_letter
+            decrypted_bytes = b''
+            ''' Now decrypt the cipher text with the current obtained key'''
+            for j in range(len(cipher_text)):
+                decrypted_bytes += (key ^ cipher_text[k][j]).to_bytes(1,'big')
+            ''' Strip my dictionary letters from the decrypted data, the correct key will 
+                give the minimal length of data
+            '''
+            if minimal_decrypted_data_length > len(decrypted_bytes.strip(my_dictionary)):
+                minimal_decrypted_data_length = len(decrypted_bytes.strip(my_dictionary))
+                save_key = key    # the correct key with maximum valid ascii letters
+        the_key += save_key.to_bytes(1,'big')
+    return the_key
 
 
+
+cipher_bytes = []
+with open('4.txt', 'r') as input_file:
+    while True:
+        cipher_text = input_file.readline().rstrip('\n')
+        if cipher_text == '':
+            break
+        cipher_bytes.append(int(cipher_text,16).to_bytes(int(len(cipher_text)/2),'big'))
+
+
+obtained_text = [b'']
+obtained_text[0] = obtain_cipher_text(cipher_bytes) # work with it as bytearray place the cipher text in first location
+print('The key: ',find_key(obtained_text).hex())
+print('Decrypted Text: ',str(decrypt(obtained_text[0],find_key(obtained_text)),'utf-8'))
