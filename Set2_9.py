@@ -1,9 +1,10 @@
 
-def PKCS(text:bytes,blocksize):
-    for i in range(blocksize-len(text)):
-        text += b'\x00'
-    return  text
+def PKCS(text:bytes,blocksize,pad=b'\x00'):
+    if len(text)%blocksize == 0:
+        return text
+    text += pad
+    return PKCS(text,blocksize,pad)
 
 
 test = b'YELLOW SUBMARINE'
-print(PKCS(test,20))
+print(PKCS(test,20,b'\x04'))

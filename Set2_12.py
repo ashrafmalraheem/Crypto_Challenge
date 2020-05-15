@@ -8,6 +8,7 @@ def PKCS(text: bytes, blocksize, pad=b'\x00'):
     text += pad
     return PKCS(text, blocksize, pad)
 
+
 def encryption_oracle(plain_text):
     ''' Generate random keys and random IV'''
     key = get_random_bytes(16)
@@ -34,6 +35,7 @@ def encryption_oracle(plain_text):
     cipher_text = ciphering.encrypt(plain_text)
     return cipher_text
 
+
 def AES_128_ECB(plain_text, random_key):
     ''' Encrypt using AES-ECB with random key and append some unknown string to the key '''
     unknown_string = 'Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg' \
@@ -47,6 +49,7 @@ def AES_128_ECB(plain_text, random_key):
     ciphering = AES.new(random_key, AES.MODE_ECB)
     cipher_text = ciphering.encrypt(plain_text)
     return cipher_text
+
 
 def get_blocksize(func):
     ''' You can determine the block size by getting the cipher text
@@ -66,6 +69,7 @@ def get_blocksize(func):
             return final_length - initial_length
         test_text += b'A'
         final_length = len(AES_128_ECB(test_text, key))
+
 
 def get_unknowstringsize(func):
     ''' To determine the unknown string appended to plain text
@@ -89,6 +93,7 @@ def get_unknowstringsize(func):
         i += 1
         final_length = len(AES_128_ECB(test_text, key))
 
+
 def is_AES_ECB_mode(func):
     ''' This function will test against the AES ECB mode
         if it find match it will return true
@@ -101,6 +106,7 @@ def is_AES_ECB_mode(func):
         print("AES-ECB is used")
         return True
     return False
+
 
 def find_match(cipher, KeyLength=16):
     found = False
@@ -125,30 +131,27 @@ def find_match(cipher, KeyLength=16):
                             found = True
     return found, count_match
 
-def AES_byte_swap_attack():
-    key = get_random_bytes(16)
-    random_text = b'adsf'
-    blocksize = get_blocksize(AES_128_ECB(random_text, key))
-    attack_result = b''
-    extend = int(get_unknowstringsize(AES_128_ECB(random_text,key))/blocksize)+1
-    found_byte = b''
-    print(is_AES_ECB_mode(AES_128_ECB(random_text,key)))
-    if is_AES_ECB_mode(AES_128_ECB(random_text,key)):
-        print('AES_ECB Brute force attack will be implemented')
-    else:
-        exit()
-    for j in range(1,get_unknowstringsize(AES_128_ECB(random_text,key))):
-        for i in range(256):
-            test_block = PKCS(b'A',extend*blocksize-j,b'A')
-            test_cipher = AES_128_ECB(test_block,key)
-            cipher = AES_128_ECB(test_block+found_byte+i.to_bytes(1,'big'),key)
-            print(found_byte+i.to_bytes(1,'big'))
-            working_block = int(get_unknowstringsize(AES_128_ECB(random_text,key))/blocksize)
-            if test_cipher[(working_block)*blocksize:(working_block+1)*blocksize] == cipher[(working_block)*blocksize:(working_block+1)*blocksize]:
-                found_byte += i.to_bytes(1,'big')
-                break
-    print('The found unknown string by brute force attack is:')
-    print(found_byte.decode('utf-8'))
-
-AES_byte_swap_attack()
+key = get_random_bytes(16)
+random_text = b'adsf'
+blocksize = get_blocksize(AES_128_ECB(random_text, key))
+attack_result = b''
+extend = int(get_unknowstringsize(AES_128_ECB(random_text,key))/blocksize)+1
+found_byte = b''
+print(is_AES_ECB_mode(AES_128_ECB(random_text,key)))
+if is_AES_ECB_mode(AES_128_ECB(random_text,key)):
+    print('AES_ECB Brute force attack will be implemented')
+else:
+    exit()
+for j in range(1,get_unknowstringsize(AES_128_ECB(random_text,key))):
+    for i in range(256):
+        test_block = PKCS(b'A',extend*blocksize-j,b'A')
+        test_cipher = AES_128_ECB(test_block,key)
+        cipher = AES_128_ECB(test_block+found_byte+i.to_bytes(1,'big'),key)
+        print(found_byte+i.to_bytes(1,'big'))
+        working_block = int(get_unknowstringsize(AES_128_ECB(random_text,key))/blocksize)
+        if test_cipher[(working_block)*blocksize:(working_block+1)*blocksize] == cipher[(working_block)*blocksize:(working_block+1)*blocksize]:
+            found_byte += i.to_bytes(1,'big')
+            break
+print('The found unknown string by brute force attack is:')
+print(found_byte.decode('utf-8'))
 exit()
