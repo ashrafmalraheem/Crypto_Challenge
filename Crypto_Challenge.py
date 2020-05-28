@@ -1,5 +1,6 @@
 from base64 import b64decode
 from Crypto.Random import get_random_bytes
+import random
 from Crypto.Cipher import AES
 
 def PKCS(text: bytes, blocksize, pad=b'\x00'):
@@ -113,11 +114,12 @@ def find_match(cipher, KeyLength=16):
         cipher_array = [b'']
         cipher_array[0] = cipher
         cipher = cipher_array
+        count_match = 0
+        location = [0]
     for k in range(int(len(cipher))):
         for l in range(int(len(cipher[0]) / KeyLength)):
             block1 = cipher[k][(l) * KeyLength:(l + 1) * KeyLength]
             # print(len(block1),block1)
-            count_match = 0
             # match_location = [(,)]
             for i in range(int(len(cipher))):
                 for j in range(int(len(cipher[i]) / KeyLength)):
@@ -125,9 +127,10 @@ def find_match(cipher, KeyLength=16):
                     if block1 == cipher[i][j * KeyLength:(j + 1) * KeyLength]:
                         if j != l:
                             # print("Find Match! in line",i,'Block',j)
+                            location.append(l)
                             count_match += 1
                             found = True
-    return found, count_match
+    return found, count_match, location
 
 def AES_byte_swap_attack():
     key = get_random_bytes(16)
@@ -154,40 +157,58 @@ def AES_byte_swap_attack():
     print('The found unknown string by brute force attack is:')
     print(found_byte.decode('utf-8'))
 
-def parsing(input):
-    print('parsing')
-    parse1 = input.split('&')
-    parse = ['']*len(parse1)
-    for i in range(len(parse1)):
-        parse[i] = parse1[i].replace('=',': ')
-    return parse
+def AES_byte_swap_attack2():
+    block_size = 16
+    ''' Generate random key'''
+    key = get_random_bytes(block_size)
+    '''Generate random number and random bytes of length of that number '''
+    random_length = random.randint(0, 10 * block_size)  # define random number from 10 to 160 just for demo
+    prepend_text = get_random_bytes(random_length)
+    ''' Separate the prepend text from the target text'''
+    plain_text = b''
+    while True:
+        cipher_text = AES_128_ECB(prepend_text + plain_text, key)
+        result = find_match(cipher_text, block_size)
+        if result[0] == True:
+            '''find the location of first match to separate the prepend text from the target bytes'''
+            location = result[2][1]
+            print('prepend_length', len(prepend_text))
+            # print('location of the first match',location)
+            plain_length = len(plain_text)
+            fixed_length = plain_length % block_size
+            ''' The fixed length will be added to the prepend text to complete one block size'''
+            fixed_text = plain_text[0:fixed_length]
+            print('plain_length', plain_length, '\nsum', plain_length + len(prepend_text))
+            print('fixed_length', fixed_length, fixed_text)
+            '''Obtain the target bytes length'''
+            target_length = len(cipher_text) - (result[2][1] + 2) * block_size
+            # print('target_length',target_length)
+            break
+        plain_text += b'A'
+    ''' The working block is the location of first match with the length of target bytes'''
+    working_block = location + int(target_length/block_size)
+    random_text = b'adsf'
+    blocksize = get_blocksize(AES_128_ECB(random_text, key))
+    attack_result = b''
+    extend = int(target_length/blocksize)+1
+    found_byte = b''
+    print(is_AES_ECB_mode(AES_128_ECB(random_text,key)))
+    if is_AES_ECB_mode(AES_128_ECB(random_text,key)):
+        print('AES_ECB Brute force attack will be implemented')
+    else:
+        exit()
+    for j in range(1,target_length):
+        for i in range(256):
+            test_block = PKCS(b'A',extend*blocksize-j,b'A')
+            test_cipher = AES_128_ECB(prepend_text+fixed_text+test_block,key)
+            cipher = AES_128_ECB(prepend_text+fixed_text+test_block+found_byte+i.to_bytes(1,'big'),key)
+            print(found_byte+i.to_bytes(1,'big'))
+            if test_cipher[(working_block)*blocksize:(working_block+1)*blocksize] == cipher[(working_block)*blocksize:(working_block+1)*blocksize]:
+                found_byte += i.to_bytes(1,'big')
+                break
+    print('The found unknown string by brute force attack is:')
+    print(found_byte.decode('utf-8'))
 
-def reverse_parse(input):
-    output = ''
-    for i in range(len(input)):
-        output += input[i].replace(': ','=') + '&'
-    return output[:(len(output)-1)]
 
-def profile_for(input):
-    before_parse = 'email='+input+'&uid=10&role=user'
-    parse = parsing(before_parse)
-    parse_bytes = b''
-    blocksize = 16
-    key = get_random_bytes(16)
-    for i in range(len(parse)):
-        parse_bytes += PKCS(parse[i].encode().replace(b': ',b''),(int(len(parse[i].encode().replace(b': ',b''))/blocksize)+1)*blocksize)
-        #print((int(len(parse[i].encode().replace(b': ',b''))/blocksize)+1)*blocksize)
-        attack = AES_128_ECB(PKCS(b'roleadmin',blocksize),key)[:blocksize]
-    print(parse_bytes,len(parse_bytes))
-
-    return AES_128_ECB(parse_bytes,key),key,attack
-
-test = 'foo=bar&baz=qux&zap=zazzle'
-y  = profile_for('foo@bar.com')
-blocksize = 16
-x = y[0][:3*blocksize]+y[2]+y[0][4*blocksize:]
-j = decryption_oracle(x,y[1])
-z = j[:2*blocksize].rstrip(b'\x00').replace(b'email',b'email=')+b'&'+j[2*blocksize:3*blocksize].rstrip(b'\x00').replace(b'uid',b'uid=')+b'&'+j[3*blocksize:4*blocksize].rstrip(b'\x00').replace(b'role',b'role=')
-
-print(z)
-exit()
+AES_byte_swap_attack2()
+#print(find_match(AES_128_ECB(prepend_text+plain_text,key),block_size))
