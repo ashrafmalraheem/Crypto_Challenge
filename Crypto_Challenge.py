@@ -3,7 +3,7 @@ from Crypto.Random import get_random_bytes
 import random
 from Crypto.Cipher import AES
 
-def PKCS(text: bytes, blocksize, pad=b'\x00'):
+def PKCS(text: bytes, blocksize=16, pad=b'\x00'):
     if len(text) % blocksize == 0:
         return text
     text += pad
@@ -209,6 +209,32 @@ def AES_byte_swap_attack2():
     print('The found unknown string by brute force attack is:')
     print(found_byte.decode('utf-8'))
 
+def validate_PKCS(input,pad=b'\x04'):
+    strip = input.replace(pad,b'')
+    for i in range(9):
+        if strip.find(i.to_bytes(1,'big')) >0:
+            print('Non valid padding')
+            return None
+    return strip
 
-AES_byte_swap_attack2()
-#print(find_match(AES_128_ECB(prepend_text+plain_text,key),block_size))
+block_size = 16
+IV = get_random_bytes(block_size)
+key = get_random_bytes(block_size)
+text1 = b'comment1=cooking%20MCs;userdata='
+text2 = b';comment2=%20like%20a%20pound%20of%20bacon'
+input_text = PKCS(text1.replace(b';',b'##').replace(b'=',b'@@')) + PKCS(text2.replace(b';',b'##').replace(b'=',b'@@'))
+cbc = AES.new(key,AES.MODE_CBC,IV)
+cbc_decrypt = AES.new(key,AES.MODE_CBC,IV)
+plain_text = b'1234567890123456'
+cipher = cbc.encrypt(input_text)
+attack = b'admin=true'
+f = b''
+for i in range(len(attack)):
+ f += (attack[i] ^ cipher[i]).to_bytes(1,'big')
+dd = f + cipher[len(attack):]
+print(cipher)
+print(dd)
+plain_text = cbc_decrypt.decrypt(dd)
+print(plain_text)
+
+#print(validate_PKCS(plain_text,b'\x00').replace(b'##',b';').replace(b'@@',b'=').find(b'adim=true'))
